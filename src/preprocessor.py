@@ -13,12 +13,6 @@ class PreProcessor:
         self.lemmatizer = WordNetLemmatizer()
         pass
 
-    def lemmatize_words(self, data: list[tuple[str]]) -> list[str]:
-        for i, words in tqdm(enumerate(data)):
-            data[i] = " ".join(self.lemmatizer.lemmatize(word)
-                               for word in words.split())
-        return data
-
     def _pos_tag(self, inference: str):
         inference = inference.replace(',', "").split()
         tagged = nltk.pos_tag(inference)
@@ -41,34 +35,44 @@ class PreProcessor:
         return [self.tag_tuple_to_str(t) for t in tag_tuples]
 
     def str_list_to_str(self, text: list[str]) -> str:
-        return " ".join(text) + " ./. <EOS>/<EOS>\n"
+        return " ".join(text)
 
-    def preprocess(self, data: list[tuple[str]]) -> list[tuple[str]]:
+    def preprocess_sentence(self, sentence: list[tuple[str]]) -> list[tuple[str]]:
         lemma_tags = ["NN", "VB"]
-        for words in tqdm(data):
-            for i, (word, tag) in enumerate(words):
-                if tag == "CD":
-                    words[i] = tuple(["NUM", tag])
-                elif word.lower() == "an" and tag == "DT":
-                    words[i] = tuple(["a", tag])
-                elif any([lemma_tag in tag for lemma_tag in lemma_tags]):
-                    new_tag = lemma_tags[0] if tag in lemma_tags[0] else lemma_tags[1]
-                    words[i] = tuple(
-                        [self.lemmatizer.lemmatize(word), new_tag])
-        return data
+        for i, (word, tag) in enumerate(sentence):
+            if tag == "CD":
+                sentence[i] = tuple(["NUM", tag])
+            elif word.lower() == "an" and tag == "DT":
+                sentence[i] = tuple(["a", tag])
+            elif word.lower() in ["personx", "persony", "personz", "x", "y", "z"]:
+                sentence[i] = tuple(
+                    [word[:-1].capitalize() + word[-1].capitalize(), "IND"])
+            elif word.lower() in ["personx's", "persony's", "personz's"]:
+                sentence[i] = tuple(
+                    [word[:6].capitalize() + word[6:].capitalize(), "IND"])
+            elif any([lemma_tag in tag for lemma_tag in lemma_tags]):
+                new_tag = lemma_tags[0] if tag in lemma_tags[0] else lemma_tags[1]
+                sentence[i] = tuple(
+                    [self.lemmatizer.lemmatize(word), new_tag])
+        return sentence
 
-    def read_tag_write(self, file_name: str, lemmatize: bool = False) -> None:
+    def read_tag_write_ontology(self, file_name: str) -> None:
         data = self.filehandler.readlines_from_file(file_name)
-        data = self.pos_tag_list(data)
-        data = self.preprocess(data)
-
         for i, d in tqdm(enumerate(data)):
-            data[i] = self.tag_tuples_to_strs(d)
+            event, relation, inference = d.split(',')
+            event_tagged = self._pos_tag(event)
+            event_processed = self.preprocess_sentence(event_tagged)
+            inference_tagged = self._pos_tag(inference)
+            inference_processed = self.preprocess_sentence(inference_tagged)
+            event_str_tuples = self.tag_tuples_to_strs(event_processed)
+            event_str = self.str_list_to_str(event_str_tuples)
+            inference_str_tuples = self.tag_tuples_to_strs(inference_processed)
+            inference_str = self.str_list_to_str(inference_str_tuples) + '\n'
+            data[i] = [event_str, relation, inference_str]
 
-        for i, d in tqdm(enumerate(data)):
-            data[i] = self.str_list_to_str(d)
-        self.filehandler.writelines_to_csv(data, file_name, "tagged")
+        root = file_name.split('.')[0]
+        self.filehandler.write_list_lines_to_csv(data, root, "tagged")
 
 
 post = PreProcessor()
-post.read_tag_write("v4_atomic_trn_closed_split.csv", True)
+post.read_tag_write_ontology("v4_atomic_trn_closed_split.csv")
