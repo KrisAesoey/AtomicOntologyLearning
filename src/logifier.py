@@ -67,15 +67,15 @@ class Logifier:
             # skip adding the other person if it is personX
             if person_letter == "y":
                 if object_part:
-                    verb += "(x, a, y)"
+                    verb += "(x,a,y)"
                 else:
-                    verb += "(x, y)"
+                    verb += "(x,y)"
                 logic += " & " + verb + " & " + self.logic_dic[other_person]
             else:
-                logic += " & " + verb + "(x, a)"
+                logic += " & " + verb + "(x,a)"
 
         else:
-            logic += " & " + verb + "(x, a)"
+            logic += " & " + verb + "(x,a)"
 
         if object_part:
             objectt = "_".join(object_part)
@@ -226,10 +226,11 @@ class Logifier:
     def sentence_split_up(self, dataset: list[str]) -> list[str]:
         prepared_sentences = []
         for sentence in dataset:
+            sentence = sentence.lower().replace(',', " ")
             tagged_tups = [nltk.tag.str2tuple(t) for t in sentence.split()]
             prepared_sentence = []
             for word, _ in tagged_tups:
-                prepared_sentence.append(word.lower().replace(',', " "))
+                prepared_sentence.append(word)
             prepared_sentences.append(" ".join(prepared_sentence))
         return prepared_sentences
 
