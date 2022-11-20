@@ -34,7 +34,7 @@ class FileHandler:
     def write_dataset_to_csv(self, contexts: list[str], targets: list[str], name: str) -> None:
         data_path = self.out_dir + "/datasets/" + name + '.csv'
         os.makedirs(os.path.dirname(data_path), exist_ok="True", mode=0o755)
-        with open(data_path, 'w') as data_file:
+        with open(data_path, 'w', newline='') as data_file:
             writer = csv.writer(data_file, delimiter='\t')
             for c, t in zip(contexts, targets):
                 writer.writerow([c.replace('\n', ""), t.replace('\n', "")])
