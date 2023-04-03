@@ -12,6 +12,14 @@ class FileHandler:
             data = data_file.readlines()
         return data
 
+    def readlines_from_csv(self, file_path: str) -> list[str]:
+        data = []
+        with open(self.out_dir + file_path) as file:
+            reader = csv.reader(file, delimiter="\t")
+            for line in reader:
+                data.append(line)
+        return data
+
     def write_str_lines_to_csv(self, data: list[str], prefix: str, suffix: str = "", header: str = None) -> None:
         data_path = self.out_dir + prefix + '_' + suffix + '.csv'
         os.makedirs(os.path.dirname(data_path), exist_ok="True", mode=0o755)
@@ -38,3 +46,18 @@ class FileHandler:
             writer = csv.writer(data_file, delimiter='\t')
             for c, t in zip(contexts, targets):
                 writer.writerow([c.replace('\n', ""), t.replace('\n', "")])
+
+    def write_strings_to_csv2(self, data: list[str], prefix: str, suffix: str) -> None:
+        data_path = self.out_dir + prefix + '_' + suffix + '.csv'
+        os.makedirs(os.path.dirname(data_path), exist_ok="True", mode=0o755)
+        with open(data_path, 'w', newline='') as data_file:
+            writer = csv.writer(data_file, delimiter='\n')
+            writer.writerow(data)
+
+    def write_dataset_to_csv2(self, contexts: list[str], targets: list[str], name: str) -> None:
+        data_path = self.out_dir + "/datasets/" + name + '.csv'
+        os.makedirs(os.path.dirname(data_path), exist_ok="True", mode=0o755)
+        with open(data_path, 'w', newline='') as data_file:
+            writer = csv.writer(data_file, delimiter='\t')
+            for c, t in zip(contexts, targets):
+                writer.writerow([c, t])

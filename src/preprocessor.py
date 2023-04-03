@@ -38,7 +38,7 @@ class PreProcessor:
         return " ".join(text)
 
     def preprocess_sentence(self, sentence: list[tuple[str]]) -> list[tuple[str]]:
-        lemma_tags = ["NN", "VB"]
+        #lemma_tags = ["NN", "VB"]
         for i, (word, tag) in enumerate(sentence):
             if tag == "CD":
                 sentence[i] = tuple(["NUM", tag])
@@ -50,10 +50,12 @@ class PreProcessor:
             elif word.lower() in ["personx's", "persony's", "personz's"]:
                 sentence[i] = tuple(
                     [word[:6].capitalize() + word[6:].capitalize(), "IND"])
+            """
             elif any([lemma_tag in tag for lemma_tag in lemma_tags]):
                 new_tag = lemma_tags[0] if tag in lemma_tags[0] else lemma_tags[1]
                 sentence[i] = tuple(
                     [self.lemmatizer.lemmatize(word), new_tag])
+            """
         return sentence
 
     def read_tag_write_ontology(self, file_name: str) -> None:

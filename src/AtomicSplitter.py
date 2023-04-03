@@ -60,9 +60,12 @@ class AtomicSplitter:
         filtered_data = []
         for d in data:
             event, relation, inference = d.split(',')
-            for wanted_relation in relations:
-                if relation == wanted_relation:
-                    filtered_data.append([event, relation, inference])
+            if not relations:
+                filtered_data.append([event, relation, inference])
+            else:
+                for wanted_relation in relations:
+                    if relation == wanted_relation:
+                        filtered_data.append([event, relation, inference])
         return filtered_data
 
     def parse_inferences_prefix_split(self, ips: str) -> tuple([str]):
@@ -70,9 +73,21 @@ class AtomicSplitter:
         ips = re.split(',(?! .+\])', ips)
         return (ips[0:9], ips[9], ips[10])
 
-    def if_then_splitter(self, data: str, include_dataset=False) -> list[str]:
+    def remove_example(self, event, inference, remove_none):
+        if "personz" in event.lower() or "personz" in inference.lower():
+            return True
+        if inference == "":
+            return True
+        if remove_none and inference == "none":
+            return True
+        else:
+            return False
+
+    def if_then_splitter(self, data: str, remove_none=False) -> list[str]:
         if_then_list = []
         event, *data = data.split(',', maxsplit=1)
+        # remove weird " from certain events
+        event = event.replace('"', "")
         inference_list, _, _ = self.parse_inferences_prefix_split(
             data[0])
         for index, inferences in enumerate(inference_list):
@@ -83,6 +98,8 @@ class AtomicSplitter:
                                        for x in stripped_inferences.split(',')]
                 for inference in stripped_inferences:
                     corrected_inference = self.correct_individuals(inference)
+                    if self.remove_example(event, corrected_inference, remove_none):
+                        continue
                     if_then_list.append(
                         ",".join([event, self.relations[index], corrected_inference]))
 
@@ -147,14 +164,14 @@ class AtomicSplitter:
 
         return " ".join(corrected_inference)
 
-    def write_if_then_to_file(self, file_name: str) -> None:
+    def write_if_then_to_file(self, file_name: str, remove_none=False) -> None:
         raw_data = self.filehandler.readlines_from_file(file_name)
 
         del raw_data[0]
         data = []
 
         for row in tqdm(raw_data):
-            row = self.if_then_splitter(row)
+            row = self.if_then_splitter(row, remove_none=remove_none)
             for inference in row:
                 data.append(inference + '\n')
         root = file_name.split('.')[0]
@@ -178,6 +195,12 @@ class AtomicSplitter:
 
 
 atsp = AtomicSplitter()
-# atsp.write_if_then_to_file("v4_atomic_trn_closed.csv")
+atsp.write_if_then_to_file("v4_atomic_trn_closed.csv", remove_none=True)
+atsp.create_relation_dataset_from_file(
+    "v4_atomic_trn_closed_split_tagged.csv", ["xAttr"])
+atsp.create_relation_dataset_from_file(
+    "v4_atomic_trn_closed_split_tagged.csv", ["xIntent", "xReact", "oReact"])
 atsp.create_relation_dataset_from_file(
     "v4_atomic_trn_closed_split_tagged.csv", ["xEffect", "oEffect", "xNeed", "xWant", "oWant"])
+atsp.create_relation_dataset_from_file(
+    "v4_atomic_trn_closed_split_tagged.csv", [])
